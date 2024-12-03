@@ -35,7 +35,7 @@ while (hasDo || hasDont) {
   hasDont = dontIndex !== -1;
 
   if (doIndex >= dontIndex) {
-    const indexToSlice = doIndex > -1 ? doIndex : 0;
+    const indexToSlice = Math.max(doIndex, 0);
 
     validStatements.push(modifiableInput.slice(indexToSlice))
   }
