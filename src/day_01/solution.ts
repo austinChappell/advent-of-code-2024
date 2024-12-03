@@ -1,3 +1,5 @@
+// https://adventofcode.com/2024/day/1
+
 import fs from 'fs';
 
 const input = fs.readFileSync('./data.txt', 'utf-8');
@@ -22,7 +24,7 @@ const diff = firstDataSet.reduce((prev, curr, index) => {
 
 console.log({ diff })
 
-const similarity = firstDataSet.reduce((prev, curr, index) => {
+const similarity = firstDataSet.reduce((prev, curr) => {
   const occurrencesInSecondSet = secondDataSet.filter((n) => n === curr).length;
 
   return prev + curr * occurrencesInSecondSet;

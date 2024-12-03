@@ -1,3 +1,5 @@
+// https://adventofcode.com/2024/day/2
+
 import fs from 'fs';
 
 const input = fs.readFileSync('./data.txt', 'utf-8');
@@ -25,11 +27,7 @@ const isReportSafe = (report: number[]): boolean => {
 
   const changesDirection = diffs.some(n => n < 0) && diffs.some(n => n > 0);
 
-  if (changesDirection) {
-    return false;
-  }
-
-  return true;
+  return !changesDirection;
 }
 
 const safeReportCount = reports.reduce((prev, curr) => {
