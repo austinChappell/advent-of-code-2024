@@ -20,17 +20,18 @@ const isUpdateValidForRule = (update: number[], rule: number[]) => {
   let isValid = true;
   let foundMatchingRule = false;
 
-  update.forEach(pageNumber => {
+  for (const pageNumber of update) {
     const ruleIndex = rule.findIndex(v => v === pageNumber);
 
     if (ruleIndex === 0 && foundMatchingRule) {
       isValid = false;
+      break;
     }
 
     if (ruleIndex > -1) {
       foundMatchingRule = true;
     }
-  });
+  }
 
   return isValid;
 }
