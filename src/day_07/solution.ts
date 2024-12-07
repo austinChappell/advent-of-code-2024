@@ -6,14 +6,6 @@ const input = fs.readFileSync('./data.txt', 'utf-8');
 
 const rows = input.split('\n').filter(Boolean);
 
-type Operator = '+' | '*';
-
-const range = (start: number, end: number): number[] => {
-  return Array(Math.ceil(((end + 1) - start)))
-    .fill(start)
-    .map((x, y) => x + y);
-};
-
 const structuredData = rows.map((row) => {
   const [rawResult, rawValues] = row.split(':');
   const values = rawValues.trim().split(' ').map(Number);
@@ -25,51 +17,31 @@ const structuredData = rows.map((row) => {
   }
 });
 
-const getAllOperatorCombinations = (numberOfOperators: number): Operator[][] => {
-  const possibilities: Operator[][] = [];
+function repeatedPermutation<T>(arr: T[], length: number) {
+  if (length === 1) return arr.map(item => [item]);
 
-  const baseOperators: Operator[] = Array(numberOfOperators).fill('*' as Operator)
-  const allAddOperators: Operator[] = Array(numberOfOperators).fill('+' as Operator)
+  const perms: T[][] = [];
+  const smallerPerms = repeatedPermutation(arr, length - 1);
 
-  possibilities.push(baseOperators);
-
-  for (let i = 0; i < numberOfOperators - 1; i++) {
-    baseOperators.forEach((_, index) => {
-      const clonedBased = [...baseOperators];
-
-      const indexesToModifyStart = index;
-      const indexesToModifyEnd = index + i;
-
-      const indexesToModify = range(indexesToModifyStart, indexesToModifyEnd)
-        .map((idx) => {
-          if (baseOperators[idx] === undefined) {
-            return idx - baseOperators.length;
-          }
-
-          return idx;
-        })
-
-      indexesToModify.forEach((idx) => {
-        clonedBased[idx] = '+';
-      })
-
-      possibilities.push(clonedBased);
-    })
+  for (const smallerPerm of smallerPerms) {
+    for (const item of arr) {
+      perms.push([...smallerPerm, item]);
+    }
   }
 
-  possibilities.push(allAddOperators);
-
-  return possibilities;
+  return perms;
 }
 
 const canGetResult = ({
+  operators,
   result,
   values,
 }: {
+  operators: string[];
   result: number;
   values: number[];
 }) => {
-  const allOperatorCombos = getAllOperatorCombinations(values.length - 1);
+  const allOperatorCombos = repeatedPermutation(operators, values.length - 1);
 
   for (const operatorCombo of allOperatorCombos) {
     const total = values.reduce((prev, curr, index) => {
@@ -83,7 +55,15 @@ const canGetResult = ({
         return prev + curr;
       }
 
-      return prev * curr;
+      if (operator === '*') {
+       return prev * curr;
+      }
+
+      if (operator === '||') {
+        return Number(`${prev}${curr}`)
+      }
+
+      return prev;
     }, 0);
 
     if (total === result) {
@@ -94,24 +74,14 @@ const canGetResult = ({
   return false;
 }
 
-const sum = structuredData.reduce((prev, curr) => {
-  const hasResultMatch = canGetResult({
-    result: curr.result,
-    values: curr.values,
-  });
+const partOneSum = structuredData
+  .filter((curr) => canGetResult({...curr, operators: ['+', '*']}))
+  .reduce((prev, curr) => prev + curr.result, 0);
 
-  if (hasResultMatch) {
-    return prev + curr.result;
-  }
+console.log({ partOneSum });
 
-  return prev;
-}, 0);
+const partTwoSum = structuredData
+  .filter((curr) => canGetResult({...curr, operators: ['+', '*', '||']}))
+  .reduce((prev, curr) => prev + curr.result, 0);
 
-console.log({ partOne: sum });
-
-console.log({
-  canGetResult: canGetResult({
-    result: 1501,
-    values: [26, 6, 343, 940, 62],
-  })
-})
+console.log({ partTwoSum });
