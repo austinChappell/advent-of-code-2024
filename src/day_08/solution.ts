@@ -6,8 +6,17 @@ const input = fs.readFileSync('./data.txt', 'utf-8');
 
 const splitData = input.split('\n').filter(Boolean);
 
+interface Position {
+  row: number;
+  col: number;
+}
+
+const formatAntiNode = (position: Position) => {
+  return `${position.row}:${position.col}`;
+}
+
 const findIndexedPositions = (rows: string[]) => {
-  const indexedPositions: Record<string, { col: number; row: number; }[]> = {};
+  const indexedPositions: Record<string, Position[]> = {};
 
   rows.forEach((row, rowIndex) => {
     row.split('').forEach((col, colIndex) => {
@@ -21,18 +30,76 @@ const findIndexedPositions = (rows: string[]) => {
   return indexedPositions;
 }
 
-const findAntiNodes = (rows: string[], infinite: boolean) => {
-  const indexedPositions = findIndexedPositions(rows);
+const buildAntiNodes = ({
+  colDirection,
+  initialPosition,
+  infinite,
+  numberOfCols,
+  numberOfRows,
+  rowDirection,
+}: {
+  colDirection: number;
+  initialPosition: Position;
+  infinite: boolean;
+  numberOfCols: number;
+  numberOfRows: number;
+  rowDirection: number;
+}) => {
+  const antiNodes: Position[] = [];
+
+  if (infinite) {
+    antiNodes.push(initialPosition);
+  }
 
   const minRowBoundary = 0;
-  const maxRowBoundary = rows.length - 1;
+  const maxRowBoundary = numberOfRows - 1;
   const minColBoundary = 0;
-  const maxColBoundary = rows[0].length - 1;
+  const maxColBoundary = numberOfCols - 1;
+
+  let limitReached = false;
+  let position = {
+    ...initialPosition,
+  }
+
+  while (!limitReached) {
+    const newCol = position.col + colDirection;
+    const newRow = position.row + rowDirection;
+
+    const isOutOfRowBoundary = newRow < minRowBoundary || newRow > maxRowBoundary;
+    const isOutOfColBoundary = newCol < minColBoundary || newCol > maxColBoundary;
+    const isOutOfBoundary = isOutOfColBoundary || isOutOfRowBoundary;
+
+    if (isOutOfBoundary) {
+      limitReached = true;
+      break;
+    }
+
+    const antiNode = {
+      col: newCol,
+      row: newRow,
+    };
+
+    antiNodes.push(antiNode);
+
+    position = {
+      ...antiNode,
+    }
+
+    if (!infinite) {
+      limitReached = true;
+    }
+  }
+
+  return antiNodes;
+}
+
+const findAntiNodes = (rows: string[], infinite: boolean) => {
+  const indexedPositions = findIndexedPositions(rows);
 
   // each value is a string formatted as row:col
   const antiNodes = new Set<string>();
 
-  Object.entries(indexedPositions).forEach(([char, positions]) => {
+  Object.entries(indexedPositions).forEach(([_char, positions]) => {
     positions.forEach((position, index) => {
       if (index < positions.length - 1) {
         const remaining = positions.slice(index + 1);
@@ -47,86 +114,27 @@ const findAntiNodes = (rows: string[], infinite: boolean) => {
           const rowDirection = isPositionLesserRow ? rowDiff * -1 : rowDiff;
           const colDirection = isPositionLesserCol ? colDiff * -1 : colDiff;
 
-          let leftLimitReached = false;
-          let rightLimitReached = false;
+          const descendingAntiNodes = buildAntiNodes({
+            colDirection,
+            infinite,
+            initialPosition: position,
+            numberOfCols: rows[0].length,
+            numberOfRows: rows.length,
+            rowDirection,
+          });
 
-          let leftPosition = {
-            ...position,
-          };
-          let rightPosition = {
-            ...remainingPosition,
-          };
+          const ascendingAntiNodes = buildAntiNodes({
+            colDirection: colDirection * -1,
+            infinite,
+            initialPosition: remainingPosition,
+            numberOfCols: rows[0].length,
+            numberOfRows: rows.length,
+            rowDirection: rowDirection * -1,
+          });
 
-          if (infinite) {
-            antiNodes.add(`${leftPosition.row}:${leftPosition.col}`);
-            antiNodes.add(`${rightPosition.row}:${rightPosition.col}`);
-          }
-
-          while (!leftLimitReached) {
-            const newCol = leftPosition.col + colDirection;
-            const newRow = leftPosition.row + rowDirection;
-
-            const isOutOfRowBoundary = newRow < minRowBoundary || newRow > maxRowBoundary;
-            const isOutOfColBoundary = newCol < minColBoundary || newCol > maxColBoundary;
-            const isOutOfBoundary = isOutOfColBoundary || isOutOfRowBoundary;
-
-            if (isOutOfBoundary) {
-              leftLimitReached = true;
-              break;
-            }
-
-            const antiNode = {
-              col: newCol,
-              row: newRow,
-            };
-
-            if (rows[antiNode.row]?.[antiNode.col] === undefined) {
-              throw new Error(`Not in grid ${antiNode.row}:${antiNode.col} for char ${char}`);
-            }
-
-            antiNodes.add(`${antiNode.row}:${antiNode.col}`);
-
-            leftPosition = {
-              ...antiNode,
-            }
-
-            if (!infinite) {
-              leftLimitReached = true;
-            }
-          }
-
-          while (!rightLimitReached) {
-            const newCol = rightPosition.col - colDirection;
-            const newRow = rightPosition.row - rowDirection;
-
-            const isOutOfRowBoundary = newRow < minRowBoundary || newRow > maxRowBoundary;
-            const isOutOfColBoundary = newCol < minColBoundary || newCol > maxColBoundary;
-            const isOutOfBoundary = isOutOfColBoundary || isOutOfRowBoundary;
-
-            if (isOutOfBoundary) {
-              rightLimitReached = true;
-              break;
-            }
-
-            const antiNode = {
-              col: newCol,
-              row: newRow,
-            };
-
-            if (rows[antiNode.row]?.[antiNode.col] === undefined) {
-              throw new Error(`Not in grid ${antiNode.row}:${antiNode.col} for char ${char}`);
-            }
-
-            antiNodes.add(`${antiNode.row}:${antiNode.col}`);
-
-            rightPosition = {
-              ...antiNode,
-            }
-
-            if (!infinite) {
-              rightLimitReached = true;
-            }
-          }
+          [...descendingAntiNodes, ...ascendingAntiNodes].forEach((antiNode) => {
+            antiNodes.add(formatAntiNode(antiNode));
+          });
         })
       }
     })
@@ -137,5 +145,3 @@ const findAntiNodes = (rows: string[], infinite: boolean) => {
 
 console.log({ partOne: findAntiNodes(splitData, false).size });
 console.log({ partTwo: findAntiNodes(splitData, true).size });
-
-// console.log(Array.from(findAntiNodes(splitData, true)).sort((a, b) => a.localeCompare(b)))
