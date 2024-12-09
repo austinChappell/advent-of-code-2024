@@ -4,21 +4,35 @@ import fs from 'fs';
 
 const input = fs.readFileSync('./data.txt', 'utf-8');
 
-let id = 0;
+const getCheckSum = (diskMap: string[]) => {
+  return diskMap.reduce((prev, curr, index) => {
+    if (Number.isNaN(Number(curr))) {
+      return prev;
+    }
 
-const diskMap = input.split('').flatMap((block, index) => {
-  const isFile = index % 2 === 0;
+    const product = Number(curr) * index;
 
-  const fillValue = isFile ? `${id}` : '.';
+    return product + prev;
+  }, 0);
+}
 
-  const value = Array(Number(block)).fill(fillValue);
+const buildDiskMap = () => {
+  let id = 0;
 
-  if (isFile) {
-    id += 1;
-  }
+  return input.split('').map((block, index) => {
+    const isFile = index % 2 === 0;
 
-  return value;
-});
+    const fillValue = isFile ? `${id}` : '.';
+
+    const value = Array(Number(block)).fill(fillValue);
+
+    if (isFile) {
+      id += 1;
+    }
+
+    return value;
+  }).filter(block => !!block.length);
+}
 
 const optimizeDiskMap = (diskMapInput: string[]) => {
   let lastFileBlockIndex = diskMapInput.length - 1 - diskMapInput.slice().reverse().findIndex(char => !char.startsWith('.'));
@@ -35,16 +49,42 @@ const optimizeDiskMap = (diskMapInput: string[]) => {
   return diskMapInput;
 }
 
-const optimizedDiskMap = optimizeDiskMap(diskMap);
+const optimizedDiskMap = optimizeDiskMap(buildDiskMap().flat());
 
-const fileSystemChecksum = optimizedDiskMap.reduce((prev, curr, index) => {
-  if (curr === '.') {
-    return prev;
+console.log({ partOne: getCheckSum(optimizedDiskMap) });
+
+const wholeFileOptimizedDiskMap = (diskMapInput: string[][]) => {
+  let lastFileBlockIndex = diskMapInput.length - 1 - diskMapInput.slice().reverse().findIndex(char => !Number.isNaN(Number(char[0])));
+  let firstFreeSpaceIndex = diskMapInput.findIndex(char => char[0] === '.');
+
+  let maxFileIndex = diskMapInput.length;
+
+  while (firstFreeSpaceIndex > -1 && firstFreeSpaceIndex < lastFileBlockIndex) {
+    const fileLength = diskMapInput[lastFileBlockIndex].length;
+
+    const availableFreeSpaceIndex = diskMapInput.findIndex((value, index) => {
+      return value[0] === '.' && value.length >= fileLength && index < lastFileBlockIndex;
+    });
+
+    if (availableFreeSpaceIndex > -1) {
+      const freeSpace = diskMapInput[availableFreeSpaceIndex];
+      const remainingFreeSpace = freeSpace.slice(fileLength);
+      const freeSpaceValueToSwap = Array(fileLength).fill('.');
+
+      diskMapInput[availableFreeSpaceIndex] = diskMapInput[lastFileBlockIndex];
+      diskMapInput[lastFileBlockIndex] = freeSpaceValueToSwap;
+
+      diskMapInput.splice(availableFreeSpaceIndex + 1, 0, remainingFreeSpace);
+    } else {
+      maxFileIndex -= 1;
+    }
+
+    const invertedMaxFileIndex = diskMapInput.length - 1 - maxFileIndex;
+    lastFileBlockIndex = diskMapInput.length - 1 - diskMapInput.slice().reverse().findIndex((char, index) => index > invertedMaxFileIndex && !Number.isNaN(Number(char[0])));
+    firstFreeSpaceIndex = diskMapInput.findIndex(char => char[0] === '.');
   }
 
-  const product = Number(curr) * index;
+  return diskMapInput;
+}
 
-  return product + prev;
-}, 0);
-
-console.log({ partOne: fileSystemChecksum });
+console.log({ partTwo: getCheckSum(wholeFileOptimizedDiskMap(buildDiskMap()).flat()) })
