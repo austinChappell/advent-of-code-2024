@@ -43,14 +43,10 @@ const walkPath = ({
   mapInput,
   row,
   col,
-  withLog,
-  details,
 }: {
   mapInput: MapInput;
   row: number;
   col: number;
-  withLog?: boolean;
-  details: string;
 }): Position[] => {
   const upRow = row - 1;
   const downRow = row + 1;
@@ -62,11 +58,6 @@ const walkPath = ({
   let downChar = getChar({ mapInput, row: downRow, col });
   let leftChar = getChar({ mapInput, row, col: leftCol });
   let rightChar = getChar({ mapInput, row, col: rightCol });
-  let upPathCount = 0;
-  let downPathCount = 0;
-  let leftPathCount = 0;
-  let rightPathCount = 0;
-  let nineCount = 0;
   let upPath: Position[] = [];
   let downPath: Position[] = [];
   let leftPath: Position[] = [];
@@ -83,38 +74,19 @@ const walkPath = ({
   const incrementByOne = start + 1;
 
   if (upChar === incrementByOne) {
-    upPath = walkPath({ mapInput, row: upRow, col, withLog, details: 'up path' });
+    upPath = walkPath({ mapInput, row: upRow, col });
   }
 
   if (downChar === incrementByOne) {
-    downPath = walkPath({ mapInput, row: downRow, col, withLog, details: 'down path' });
+    downPath = walkPath({ mapInput, row: downRow, col });
   }
 
   if (leftChar === incrementByOne) {
-    leftPath = walkPath({ mapInput, row, col: leftCol, withLog, details: 'left path' });
+    leftPath = walkPath({ mapInput, row, col: leftCol });
   }
 
   if (rightChar === incrementByOne) {
-    rightPath = walkPath({ mapInput, row, col: rightCol, withLog, details: 'right path' });
-  }
-
-  if (withLog) {
-    console.log({
-      details,
-      start,
-      row,
-      col,
-      incrementByOne,
-      upChar,
-      downChar,
-      leftChar,
-      rightCol,
-      upPathCount,
-      downPathCount,
-      leftPathCount,
-      rightPathCount,
-      nineCount,
-    })
+    rightPath = walkPath({ mapInput, row, col: rightCol });
   }
 
   return [
@@ -129,17 +101,15 @@ const getHikingPathsFromTrailHead = ({
   mapInput,
   row,
   col,
-  withLog,
 }: {
   mapInput: MapInput;
   row: number;
   col: number;
-  withLog?: boolean;
 }): {
   totalDestinations: number;
   totalTrails: number;
 } => {
-  const destinations = walkPath({ mapInput, row, col, withLog, details: 'start' });
+  const destinations = walkPath({ mapInput, row, col });
 
   const destinationSet = new Set<string>();
 
