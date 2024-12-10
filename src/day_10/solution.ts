@@ -135,13 +135,10 @@ const getHikingPathsFromTrailHead = ({
   row: number;
   col: number;
   withLog?: boolean;
-}): number => {
-  const startingChar = getChar({ mapInput, row, col });
-
-  if (startingChar !== 0) {
-    return 0;
-  }
-
+}): {
+  totalDestinations: number;
+  totalTrails: number;
+} => {
   const destinations = walkPath({ mapInput, row, col, withLog, details: 'start' });
 
   const destinationSet = new Set<string>();
@@ -150,15 +147,31 @@ const getHikingPathsFromTrailHead = ({
     destinationSet.add(`${destination.row}:${destination.col}`);
   });
 
-  return destinationSet.size;
+  return {
+    totalDestinations: destinationSet.size,
+    totalTrails: destinations.length,
+  }
 }
 
-const findTotalHikingPaths = (mapInput: MapInput): number => {
+const findTotalHikingPaths = (mapInput: MapInput): {
+  totalDestinations: number;
+  totalTrails: number;
+} => {
   const zeroPositions = findZeros(mapInput);
 
   return zeroPositions.reduce((prev, curr) => {
-    return prev + getHikingPathsFromTrailHead({ mapInput, row: curr.row, col: curr.col });
-  }, 0);
+    const next = getHikingPathsFromTrailHead({ mapInput, row: curr.row, col: curr.col });
+
+    return {
+      totalDestinations: prev.totalDestinations + next.totalDestinations,
+      totalTrails: prev.totalTrails + next.totalTrails,
+    }
+  }, {
+    totalDestinations: 0,
+    totalTrails: 0,
+  });
 }
 
-console.log({ partOne: findTotalHikingPaths(mapInput) })
+const result = findTotalHikingPaths(mapInput);
+
+console.log({ partOne: result.totalDestinations, partTwo: result.totalTrails })
