@@ -41,91 +41,85 @@ const clawMachines: ClawMachine[] = input.split('\n\n')
     }
   })
 
-const calc = ({
-  clawMachine,
+const solveSystematicEquations = ({
+  x1Multiplier,
+  y1Multiplier,
+  total1,
+  x2Multiplier,
+  y2Multiplier,
+  total2,
 }: {
-  clawMachine: ClawMachine;
-}): {
-  buttonA: number;
-  buttonB: number;
-} | null => {
-  const aHypInterval = getHypotenuse(clawMachine.buttonA);
-  const bHypInterval = getHypotenuse(clawMachine.buttonB);
-  const distanceHyp = getHypotenuse(clawMachine.prize);
+  x1Multiplier: number;
+  y1Multiplier: number;
+  total1: number;
+  x2Multiplier: number;
+  y2Multiplier: number;
+  total2: number;
+}): { x: number; y: number } => {
+  const total1ByX2 = total1 * x2Multiplier;
+  const y1ByX2 = y1Multiplier * x2Multiplier;
+  const total2ByX1 = total2 * x1Multiplier;
+  const y2ByX1 = y2Multiplier * x1Multiplier;
 
-  const aCost = aHypInterval / aButtonCost;
-  const bCost = bHypInterval / bButtonCost;
+  const totalsDiff = total2ByX1 - total1ByX2;
+  const yDiff = y2ByX1 - y1ByX2;
 
-  let foundSolution = false;
-  let mostEfficient: keyof ClawMachine = aCost > bCost ? 'buttonA' : 'buttonB';
-  let leastEfficient: keyof ClawMachine = mostEfficient === 'buttonA' ? 'buttonB' : 'buttonA';
-  let mostEfficientCount = mostEfficient === 'buttonA'
-    ? Math.ceil(distanceHyp / aHypInterval)
-    : Math.ceil(distanceHyp / bHypInterval);
-  let leastEfficientCount = 0;
+  const y = totalsDiff / yDiff;
 
-  while (mostEfficientCount > -1 && !foundSolution) {
-    const xDistance = clawMachine[mostEfficient].x * mostEfficientCount;
-    const yDistance = clawMachine[mostEfficient].y * mostEfficientCount;
-    const clawCoords: Coords = {
-      x: xDistance,
-      y: yDistance,
-    };
+  const y1Temp = y * y1Multiplier;
 
-    leastEfficientCount = 0;
+  const total1Temp = total1 - y1Temp;
 
-    while (clawCoords.x <= clawMachine.prize.x && clawCoords.y <= clawMachine.prize.y && !foundSolution) {
-      if (clawCoords.x === clawMachine.prize.x && clawCoords.y === clawMachine.prize.y) {
-        foundSolution = true;
-      } else {
-        clawCoords.x += clawMachine[leastEfficient].x;
-        clawCoords.y += clawMachine[leastEfficient].y;
-        leastEfficientCount++;
-      }
-    }
+  const x = total1Temp / x1Multiplier;
 
-    if (!foundSolution) {
-      mostEfficientCount--;
-    }
-  }
-
-  if (!foundSolution) {
-    return null;
-  }
-
-  if (mostEfficientCount > 100 || leastEfficientCount > 100) {
-    return null;
-  }
-
-  return {
-    [mostEfficient]: mostEfficientCount,
-    [leastEfficient]: leastEfficientCount,
-  } as {
-    buttonA: number;
-    buttonB: number;
-  }
+  return { x, y };
 }
 
-const getHypotenuse = (coords: Coords): number => {
-  return Math.sqrt(Math.pow(coords.x, 2) + Math.pow(coords.y, 2));
+const getClawMachinePrice = (clawMachine: ClawMachine, limit?: number) => {
+  const distance = solveSystematicEquations({
+    x1Multiplier: clawMachine.buttonA.x,
+    y1Multiplier: clawMachine.buttonB.x,
+    total1: clawMachine.prize.x,
+    x2Multiplier: clawMachine.buttonA.y,
+    y2Multiplier: clawMachine.buttonB.y,
+    total2: clawMachine.prize.y,
+  });
+
+  if (!distance || (limit && (distance.x > limit || distance.y > limit))) {
+    return 0;
+  }
+
+  const xIsInt = Number.isInteger(distance.x);
+  const yIsInt = Number.isInteger(distance.y);
+
+  if (!xIsInt || !yIsInt) {
+    return 0;
+  }
+
+  const buttonAPressCount = distance.x;
+  const buttonBPressCount = distance.y;
+
+  const costA = buttonAPressCount * aButtonCost;
+  const costB = buttonBPressCount * bButtonCost;
+
+  return costA + costB;
 }
 
 console.log({
   partOne: clawMachines.reduce((prev, curr) => {
-    const currentDistance = calc({ clawMachine: curr });
-
-    if (!currentDistance) {
-      return prev;
-    }
-
-    const buttonAPressCount = currentDistance.buttonA;
-    const buttonBPressCount = currentDistance.buttonB;
-
-    const costA = buttonAPressCount * aButtonCost;
-    const costB = buttonBPressCount * bButtonCost;
-
-    const costForCurrent = costA + costB;
-
-    return prev + costForCurrent;
+    return prev + getClawMachinePrice(curr, 100);
   }, 0),
+  partTwo: clawMachines
+    .map((clawMachine) => {
+      return {
+        ...clawMachine,
+        prize: {
+          x: clawMachine.prize.x + 10000000000000,
+          y: clawMachine.prize.y + 10000000000000,
+        }
+      }
+    })
+    .reduce((prev, curr) => {
+      return prev + getClawMachinePrice(curr);
+    }, 0),
 })
